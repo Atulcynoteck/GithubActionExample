@@ -1,0 +1,48 @@
+name: iOS starter workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build and Test iOS project using shared scheme in project
+    runs-on: macos-13
+
+    defaults:
+      run:
+        working-directory: GithubActionExample  # Adjusted for your nested folder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Debug – List files
+        run: ls -R
+
+      - name: Debug – Show Xcode version
+        run: xcodebuild -version
+
+      - name: Debug – List schemes in project
+        run: xcodebuild -project GithubActionExample.xcodeproj -list
+
+      - name: Build
+        run: |
+          device=$(xcrun xctrace list devices 2>&1 | grep -oE 'iPhone.*?[^\(]+' | head -1 | awk '{$1=$1;print}' | sed -e "s/ Simulator$//")
+          xcodebuild clean build-for-testing \
+            -project GithubActionExample.xcodeproj \
+            -scheme GithubActionExample \
+            -destination "platform=iOS Simulator,name=$device" \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=YES
+
+      - name: Test
+        run: |
+          device=$(xcrun xctrace list devices 2>&1 | grep -oE 'iPhone.*?[^\(]+' | head -1 | awk '{$1=$1;print}' | sed -e "s/ Simulator$//")
+          xcodebuild test-without-building \
+            -project GithubActionExample.xcodeproj \
+            -scheme GithubActionExample \
+            -destination "platform=iOS Simulator,name=$device"
+
